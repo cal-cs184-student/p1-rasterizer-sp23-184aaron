@@ -23,74 +23,164 @@
 
 <body>
 
-<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2023</h1>
 <h1 align="middle">Project 1: Rasterizer</h1>
-<h2 align="middle">YOUR NAME, CS184-??</h2>
+<h2 align="middle">Aaron Shalf, CS184-23</h2>
 
 <br><br>
 
 <div>
 
 <h2 align="middle">Overview</h2>
-<p>Give a high-level overview of what you implemented in this project. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the project.</p>
+<p>I implemented an image renderer that takes information about some image and projects it onto a screen, with some optimizations and anti-aliasing. I learned about the algorithms involved in implementing anti-aliasing and texturing in the process.</p>
 
 <h2 align="middle">Section I: Rasterization</h2>
 
 <h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
 
-<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
-
+<p>For rasterizing triangles, I first approached the problem without optimizing for the bounding box of a triangle. For each triangle, I iterated over every x, y coordinate pair in the screen space and checked if it was inside the triangle, using the line tests and accounting for reverse winding direction. For those points which were inside the triangle, I colored the pixel corresponding to that x, y pair. Then I created a bounding box by starting at the leftmost point on the triangle and scanning upwards from the lowest point for each x value (or scanning downwards if the leftmost point of the triangle was also the highest point). My approach was actually slightly optimized from the bounding box, as I exited the loop as soon as the vertical scan exited the triangle. </p>
 <div align="middle">
   <table style="width=100%">
     <tr>
       <td>
-        <img src="images/image1.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="images/basic_singlecolor.png" align="middle" width="400px"/>
+        <figcaption align="middle">Basic 1</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 2: Antialiasing triangles</h3>
+<p>For supersampling, I created a sample buffer containing the desired resolution of the supersample. This sample buffer was updated when updating the sample rate or framebuffer target. When it came to selecting points for the triangle, I filled in each points in the high-resolution sample buffer as normal. For points, I made sure to fill in every space that would correspond to the screen-space buffer. When resolving to the screenbuffer, I iterated through the x,y pairs in the screenspace, and for each coordinate I’d iterate through every pixel around that coordinate within the high-resolution sample buffer and average the colors of those pixels. Supersampling is useful because it helps to reduce aliasing. By accounting for the higher resolution data around each point on the screen, it results in less of the sharp transitions that cause jaggies and smooths them with intermediate colors.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/basic1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Sample Rate 1</figcaption>
       </td>
       <td>
-        <img src="images/image2.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="images/basic4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Sample 4</figcaption>
       </td>
     </tr>
     <br>
     <tr>
       <td>
-        <img src="images/image3.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="images/basic16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Sample Rate 16</figcaption>
       </td>
+    </tr>
+  </table>
+</div>
+<p>When the sample rate is 1, we see examples of aliasing with the floating pixels. This is due to the fact that the actual triangle continues extending rightwards, but most of the pixels don’t align with the actual surface of the triangle and therefore sample the white background instead. Once we introduce a sample rate of 4, we combat some of these effects, as well as reduce the jaggies seen on the main body of the triangle. Points that are close enough to the triangle to sample 1 point from it are thereby colored with ¼ of the red color, combined with the white. However due to the extremely narrow edge of the triangle, we still see some aliasing. This effect is completely removed by setting the sample rate to 16, which results in each pixel on the screen sampling at least some degree of the triangle’s position and factoring it into the averaged color.
+</p>
+
+<h3 align="middle">Part 3: Transforms</h3>
+<p>I changed the cubeman to be waving instead of T-posing. I focused on his arms, since those are the limbs primarily involved in waving. First I made his left arm flat against his side by scaling the y-axis to be more stretched than the x-axis and positioning both limbs to be along the same x-axis. With the other arm, I kept the first limb in the same outstretched position, but rotated the rightmost limb to be inclined in a wave, and translated it upwards in the y-direction appropriately.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
       <td>
-        <img src="images/image4.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="images/my_robot.png" align="middle" width="400px"/>
+        <figcaption align="middle">My Robot</figcaption>
       </td>
     </tr>
   </table>
 </div>
 
 
-<h3 align="middle">Part 2: Antialiasing triangles</h3>
-
-
-
-<h3 align="middle">Part 3: Transforms</h3>
-
-
-
 <h2 align="middle">Section II: Sampling</h2>
 
 <h3 align="middle">Part 4: Barycentric coordinates</h3>
-
+<p>Barycentric coordinates are a way of representing a point in space as the sum of 3 vectors. Instead of x, y coordinates, the point comprises scalars A, B, and C, which sum up to 1 and output [x, y] when scaled by the respective [x, y] corners of the triangle.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/barycentric_coordinates.png" align="middle" width="400px"/>
+        <figcaption align="middle">Taken from <a>http://home.ustc.edu.cn/~whirlwind/posts/report-04-curvature-estimation-visualization-and-interaction.html</a></figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<p>This image demonstrates the 3 scalar vectors, as relative from the points a b and c. It also provides a visualization for how barycentric coordinates can be used in texturing surfaces, with the color wheel. By assigning a color to each corner and scaling that by the same barycentric coordinates, we can apply a mapping of colors that transitions between corners based on the relative distances from each one.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/colorwheel.png" align="middle" width="400px"/>
+        <figcaption align="middle">Barycentric Color Wheel</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 
 <h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+<p>Pixel sampling for texture mapping involves converting an [x,y] coordinate pair into the [u,v] space which represents some texture space, then sampling the texture color and filling the [x,y] point with that color. To convert between coordinate spaces, one can reuse the barycentric coordinates and apply them to the corresponding [u,v] pairs for each corner of the triangle. Nearest pixel sampling simply takes the texture color of the closest texture pixel to the [u,v] pair and applies it. Bilinear interpolation involves using “lerp” functions on the surrounding closest 4 pixels in the texture space and averaging their color to produce a smoother texture.
+</p>
 
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/nearest1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest Pixel 1</figcaption>
+      </td>
+      <td>
+        <img src="images/bilinear1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bilinear 1</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/nearest16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Nearest Pixel 16</figcaption>
+      </td>
+      <td>
+        <img src="images/bilinear16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bilinear 16</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<p>In the texture map above, bilinear interpolation clearly beats out nearest pixel sampling for best creating a smooth textured image. Although much of the map looks alright, the different methods have most noticeable differences with regards to the latitudinal/longitudinal lines, due to their thin length. Similar to supersampling bilinear interpolation helps reduce jaggies from the texture space by factoring the color of neighboring spaces. While supersampling noticeably helps smooth out the edges of the map in the photo, it doesn’t fully blend the latitude lines, even with a supersampling rate of 16. However, as observed in the two images on the right side, bilinear sampling ensures that samples that nearly miss the white pixels in the texture map don’t completely ignore the presence of the line and thereby results in a smoother outcome.
+</p>
 
 <h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
-
-
-
-<h2 align="middle">Section III: Art Competition</h2>
-<p>If you are not participating in the optional art competition, don't worry about this section!</p>
-
-<h3 align="middle">Part 7: Draw something interesting!</h3>
+<p>Level sampling involves incorporating mipmaps in producing textures. Mipmaps are pre-generated texture compositions that are stored in levels; as the level increases, the texture is downsampled to lower resolution. This is useful for antialiasing surfaces that are observed from a large distance. Using the highest resolution mipmap could result in aliasing, as that surface is sampled less when it’s further away and takes up less space on the screen. By pre-generating and saving a lower resolution texture, level sampling can pull from an already downsampled texture that won’t result in aliasing issues. I used the formula from lecture to determine which level to use based on the rate of change in the [u,v] coordinate space.
+	Level sampling can help anti-alias for textures at far distances with a marginal decrease in speed, at the cost of increasing memory usage by ⅓. Pixel sampling methods slows down sampling by a bit, but can be very powerful for antialiasing thin patterns in the texture space without consuming additional memory. Lastly, “number of samples per pixel” methods can consume additional memory, up to the size of the high-resolution buffer. Likewise, the run time scales linearly with the sample rate, as the number of pixels that needs to be read increases. Despite this, it is incredibly powerful for anti-aliasing basic images and borders, minimizing jaggies to be nearly imperceptible.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/nearestlevelbilinear_mypng.png" align="middle" width="400px"/>
+        <figcaption align="middle"> L_nearest & P_linear</figcaption>
+      </td>
+      <td>
+        <img src="images/nearestlevelnearestpixel_mypng.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_nearest & P_nearest</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/levelzerobilinear_mypng.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_zero & P_linear</figcaption>
+      </td>
+      <td>
+        <img src="images/levelzeronearestpixel_mypng.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_zero & P_nearest</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 
 </body>
 </html>

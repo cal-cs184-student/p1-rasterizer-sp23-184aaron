@@ -16,10 +16,21 @@ namespace CGL {
 
   float Texture::get_level(const SampleParams& sp) {
     // TODO: Task 6: Fill this in.
-
-
-
-    return 0;
+    Vector2D duvdx = width * (sp.p_dx_uv - sp.p_uv);
+    Vector2D duvdy = height * (sp.p_dy_uv - sp.p_uv);
+    float L = std::max(std::sqrt(pow(duvdx[0], 2) + pow(duvdx[1], 2)), std::sqrt(pow(duvdy[0], 2) + pow(duvdy[1], 2)));
+    if (floor(L) >= this->mipmap.size() - 1) {
+        L = mipmap.size() - 1;
+    } else if (L < 0) {
+        L = 0;
+    }
+    if (sp.lsm == 0) {
+        return 0;
+    } else if (sp.lsm == 1) { //nearest
+        return round(L);
+    } else { //linear
+        return L;
+    }
   }
 
   Color MipLevel::get_texel(int tx, int ty) {
@@ -29,23 +40,32 @@ namespace CGL {
   Color Texture::sample_nearest(Vector2D uv, int level) {
     // TODO: Task 5: Fill this in.
     auto& mip = mipmap[level];
-
-
-
-
+    if (uv.x >=1 || uv.y >= 1 || uv.x < 0 || uv.y < 0) {
+        return Color(1, 0, 1);
+    }
+    Color col = mip.get_texel(round(uv.x * (mip.width - 1)), round(uv.y * (mip.height - 1)));
     // return magenta for invalid level
-    return Color(1, 0, 1);
+    return col;
+  }
+
+  Color lerp(float x, Color v0, Color v1) {
+      return 1.0 * v0 + x * (1.0 * v1 + -1.0 * v0);
   }
 
   Color Texture::sample_bilinear(Vector2D uv, int level) {
     // TODO: Task 5: Fill this in.
     auto& mip = mipmap[level];
-
-
-
-
-    // return magenta for invalid level
-    return Color(1, 0, 1);
+    if (uv.x >=1 || uv.y >= 1) {
+        return Color(1, 0, 1);
+    }
+    int topx = ceil(uv.x* (mip.width-1));
+    int botx = floor(uv.x*(mip.width-1));
+    int topy = ceil(uv.y*(mip.height-1));
+    int boty = floor(uv.y*(mip.height-1));
+    Color u0 = lerp(uv.x*(mip.width-1) - botx, mip.get_texel(botx, boty), mip.get_texel(topx, boty));
+    Color u1 = lerp(uv.x*(mip.width-1) - botx, mip.get_texel(botx, topy), mip.get_texel(topx, topy));
+      // return magenta for invalid level
+    return lerp(uv.y*(mip.height-1)-boty, u0, u1);
   }
 
 
